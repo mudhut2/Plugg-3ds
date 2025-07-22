@@ -118,14 +118,14 @@ int main(int argc, char** argv) {
 
 // Load the sample
     AudioSample cKick;
-    if (!load_wav("sdmc:/audio/claps64.wav", &cKick)) {
+    if (!load_wav("sdmc:/sounds/claps64.wav", &cKick)) {
         printf("Failed to load kick.wav\n");
         gfxExit();
         ndspExit();
         return 1;
     }
     AudioSample ySnare1;
-    if (!load_wav("sdmc:/audio/yoshsnare1.wav", &ySnare1)) {
+    if (!load_wav("sdmc:/sounds/yoshsnare1.wav", &ySnare1)) {
         printf("Failed to load snare.wav\n");
         gfxExit();
         ndspExit();

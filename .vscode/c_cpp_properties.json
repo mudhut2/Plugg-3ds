@@ -1,25 +1,30 @@
 {
-    "configurations": [
-        {
-            "name": "Win32",
-            "includePath": [
-                "${workspaceFolder}/**",
-                "C:/devkitPro/libctru/include/**",
-                "C:/devkitPro/devkitARM/arm-none-eabi/include/**",
-                "C:/devkitPro/devkitARM/lib/gcc/arm-none-eabi/**",
-                "C:/devkitPro/libctru/include/**",
-                "C:/devkitPro/portlibs/3ds/include/**"
-            ],
-            "defines": [
-                "_DEBUG",
-                "UNICODE",
-                "_UNICODE"
-            ],
-            "windowsSdkVersion": "10.0.22621.0",
-            "cStandard": "c17",
-            "cppStandard": "c++17",
-            "intelliSenseMode": "windows-msvc-x64"
-        }
-    ],
-    "version": 4
+   "configurations": [
+       {
+           "name": "Win32",
+           "includePath": [
+               "${workspaceFolder}/**",
+              // "C:/devkitPro/libctru/include/**",
+              // "C:/devkitPro/devkitARM/arm-none-eabi/include/**",
+              // "C:/devkitPro/devkitARM/lib/gcc/arm-none-eabi/**",
+              // "C:/devkitPro/portlibs/3ds/include/**",
+               "/opt/devkitpro/devkitARM/arm-none-eabi/include/**",
+               "/opt/devkitpro/devkitARM/lib/gcc/arm-none-eabi/**",
+               "/opt/devkitpro/libctru/include/**",
+               "/opt/devkitpro/portlibs/3ds/bin/**"
+           ],
+           "defines": [
+               "_DEBUG",
+               "UNICODE",
+               "_UNICODE"
+           ],
+           //"windowsSdkVersion": "10.0.22621.0",
+           "cStandard": "c11",
+           "cppStandard": "c++17",
+          // "intelliSenseMode": "windows-msvc-x64",
+          "intelliSenseMode": "gcc-arm"
+       }
+   ],
+   "version": 4
 }
+
