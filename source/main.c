@@ -117,29 +117,36 @@ int main(int argc, char** argv) {
     touchPosition touch;
 
 // Load the sample
-    AudioSample cKick;
-    if (!load_wav("sdmc:/sounds/claps64.wav", &cKick)) {
+    AudioSample kick1;
+    if (!load_wav("sdmc:/sounds/claps64.wav", &kick1)) {
         printf("Failed to load kick.wav\n");
         gfxExit();
         ndspExit();
         return 1;
     }
-    AudioSample ySnare1;
-    if (!load_wav("sdmc:/sounds/yoshsnare1.wav", &ySnare1)) {
+    AudioSample snare1;
+    if (!load_wav("sdmc:/sounds/yoshsnare1.wav", &snare1)) {
         printf("Failed to load snare.wav\n");
         gfxExit();
         ndspExit();
         return 1;
     }
+   /* AudioSample hh1;
+    if (!load_wav("sdmc:/sounds/hh1.wav", &hh1)) {
+        printf("Failed to load snare.wav\n");
+        gfxExit();
+        ndspExit();
+        return 1;
+    } */
 
 // draw pads
-    init_pad(&pads[0], SCREEN_WIDTH /2 - 120, 90, 90, 90, clrButtonIdle, clrButtonPressed, &cKick);
-    init_pad(&pads[1], SCREEN_WIDTH /2 + 30, 90, 90, 90, clrButtonIdle, clrButtonPressed, &ySnare1);
+    init_pad(&pads[0], SCREEN_WIDTH /2 - 120, 90, 90, 90, clrButtonIdle, clrButtonPressed, &kick1);
+    init_pad(&pads[1], SCREEN_WIDTH /2 + 30, 90, 90, 90, clrButtonIdle, clrButtonPressed, &snare1);
 
     printf("Use the pads to play sounds\n");
 
 // Main loop
-   while (aptMainLoop()) {
+  while (aptMainLoop()) {
     hidScanInput();
     hidTouchRead(&touch);
 
@@ -148,7 +155,7 @@ int main(int argc, char** argv) {
 
     if (kDown & KEY_START) break;
 
-// update pad pressed state
+    // update pad pressed state
     for (int i = 0; i < NUM_PADS; i++) {
         PadRect* pad = &pads[i];
         bool isTouched = (kHeld & KEY_TOUCH) &&
@@ -157,13 +164,31 @@ int main(int argc, char** argv) {
 
         if (isTouched && !pad->pressed) {
             pad->pressed = true;
-            play_sample(pad->sample, 0); // hacky, should be i , fix laterrrrrrrrrrrr
-            printf("Playing pad %d\n", i);
-        } else if (!isTouched && pad->pressed) {
+            if (i == 0) { // Kick Pad
+                play_sample(pad->sample, 0); // Play kick on Channel 0
+                printf("Playing kick pad on channel 0\n");
+            } else if (i == 1) { // Snare Pad
+                play_sample(pad->sample, 1); // Play snare on Channel 1
+                printf("Playing snare pad on channel 1\n");
+            } 
+        }
+         else if (!isTouched && pad->pressed) {
             pad->pressed = false;
         }
     }
 
+    if (kDown & KEY_A) {
+        play_sample(&kick1, 0); // Play kick with A on Channel 0
+        printf("Played kick with A button on channel 0\n");
+    }
+    if (kDown & KEY_B) {
+        play_sample(&snare1, 1); // Play snare with B on Channel 1
+        printf("Played snare with B button on channel 1\n");
+    }
+    /* if (kDown & KEY_Y) {
+        play_sample(&hh1, 1); 
+        printf("Played hh with Y button on channel 2\n");
+    } */
 // start rendering
     C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
     C2D_TargetClear(bottom, clrClear);
@@ -181,8 +206,10 @@ int main(int argc, char** argv) {
 
     ndspChnWaveBufClear(0);
     ndspChnWaveBufClear(1);
-    linearFree(cKick.data);
-    linearFree(ySnare1.data);
+    //ndspChnWaveBufClear(2);
+    linearFree(kick1.data);
+    linearFree(snare1.data);
+    //linearFree(hh1.data);
     C2D_Fini();
     C3D_Fini();
     ndspExit();
