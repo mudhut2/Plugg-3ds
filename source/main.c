@@ -8,7 +8,7 @@
 #define SCREEN_WIDTH  320
 #define SCREEN_HEIGHT 240
 
-#define NUM_PADS 2
+#define NUM_PADS 9
 
 typedef struct {
     u8* data;
@@ -40,7 +40,6 @@ void init_pad(PadRect* pad, float x, float y, float w, float h, u32 idle, u32 pr
 }
 
 // Load a simple uncompressed 16-bit stereo WAV file
-// Load a simple uncompressed 16-bit stereo WAV file
 bool load_wav(const char* path, AudioSample* out) {
     printf("Loading WAV from path: %s\n", path);
     FILE* f = fopen(path, "rb");
@@ -48,10 +47,8 @@ bool load_wav(const char* path, AudioSample* out) {
         printf("Error: Failed to open file %s\n", path);
         return false;
     }
-
     char fourcc[5];
     u32 chunk_size;
-
     // RIFF chunk
     fread(fourcc, 1, 4, f);
     fourcc[4] = '\0';
@@ -68,12 +65,10 @@ bool load_wav(const char* path, AudioSample* out) {
         fclose(f);
         return false;
     }
-
     // Iterate through chunks until 'fmt ' and 'data' are found
     bool fmt_found = false;
     bool data_found = false;
     u32 dataSize = 0;
-
     while (!feof(f) && (!fmt_found || !data_found)) {
         fread(fourcc, 1, 4, f);
         fourcc[4] = '\0';
@@ -82,7 +77,6 @@ bool load_wav(const char* path, AudioSample* out) {
         if (strcmp(fourcc, "fmt ") == 0) {
             u16 audioFormat, numChannels, bitsPerSample, blockAlign;
             u32 sampleRate, byteRate;
-
             fread(&audioFormat, sizeof(u16), 1, f);
             fread(&numChannels, sizeof(u16), 1, f);
             fread(&sampleRate, sizeof(u32), 1, f);
@@ -96,7 +90,6 @@ bool load_wav(const char* path, AudioSample* out) {
                 fclose(f);
                 return false;
             }
-
             out->channels = numChannels;
             out->sampleRate = sampleRate;
             fmt_found = true;
@@ -108,20 +101,17 @@ bool load_wav(const char* path, AudioSample* out) {
             fseek(f, chunk_size, SEEK_CUR); // Skip unknown chunks
         }
     }
-
     if (!fmt_found || !data_found) {
         printf("Error: Missing 'fmt ' or 'data' chunk.\n");
         fclose(f);
         return false;
     }
-
     out->data = (u8*)linearAlloc(dataSize);
     if (!out->data) {
         printf("Error: Failed to allocate linear memory.\n");
         fclose(f);
         return false;
     }
-
     fread(out->data, 1, dataSize, f);
     fclose(f);
     out->size = dataSize;
@@ -130,9 +120,8 @@ bool load_wav(const char* path, AudioSample* out) {
 
 void play_sample(AudioSample* sample, int channel) {
     ndspWaveBuf* buf = &sample->waveBuf;
-
-    if (buf->status != NDSP_WBUF_DONE && buf->status != NDSP_WBUF_FREE)
-        return;
+   
+    ndspChnWaveBufClear(channel);  // choke current channel
 
     ndspChnSetInterp(channel, NDSP_INTERP_LINEAR);
     ndspChnSetRate(channel, sample->sampleRate);
@@ -153,22 +142,11 @@ void play_sample(AudioSample* sample, int channel) {
 
 int main(int argc, char** argv) {
 // Init services
-    printf("Initializing gfx...\n");
     gfxInitDefault();
-
-    printf("Initializing C3D...\n");
     C3D_Init(C3D_DEFAULT_CMDBUF_SIZE);
-
-    printf("Initializing C2D...\n");
     C2D_Init(C2D_DEFAULT_MAX_OBJECTS);
-
-    printf("Preparing C2D...\n");
     C2D_Prepare();
-
-    printf("Initializing console...\n");
     consoleInit(GFX_TOP, NULL);
-
-    printf("Initializing ndsp...\n");
     ndspInit();
 
     printf("Creating screen target...\n");
@@ -183,26 +161,40 @@ int main(int argc, char** argv) {
     touchPosition touch;
 
 // Load samples
-    AudioSample kick1;
-    if (!load_wav("sdmc:/sounds/oh1.wav", &kick1)) {
-        printf("Failed to load kick.wav\n");
-        gfxExit();
-        ndspExit();
-        return 1;
-    }
-    AudioSample snare1;
-    if (!load_wav("sdmc:/sounds/perc1.wav", &snare1)) {
-        printf("Failed to load snare.wav\n");
-        gfxExit();
-        ndspExit();
-        return 1;
-    }
+    AudioSample sounds[NUM_PADS];
+    if (!load_wav("sdmc:/sounds/claps64.wav", &sounds[0])) { return 1; }
+    if (!load_wav("sdmc:/sounds/bass1.wav", &sounds[1])) { return 1; }
+    if (!load_wav("sdmc:/sounds/oh1.wav", &sounds[2])) { return 1; }
+    if (!load_wav("sdmc:/sounds/kick2.wav", &sounds[3])) { return 1; }
+    if (!load_wav("sdmc:/sounds/yoshsnare1.wav", &sounds[4])) { return 1; }
+    if (!load_wav("sdmc:/sounds/clap1.wav", &sounds[5])) { return 1; }
+    if (!load_wav("sdmc:/sounds/00.wav", &sounds[6])) { return 1; }
+    if (!load_wav("sdmc:/sounds/perc1.wav", &sounds[7])) { return 1; }
+    if (!load_wav("sdmc:/sounds/hatperc.wav", &sounds[8])) { return 1; }
 
-// draw pads
-    init_pad(&pads[0], SCREEN_WIDTH /2 - 120, 90, 90, 90, clrButtonIdle, clrButtonPressed, &kick1);
-    init_pad(&pads[1], SCREEN_WIDTH /2 + 30, 90, 90, 90, clrButtonIdle, clrButtonPressed, &snare1);
+// draw pads in a 3x3 grid
+    float pad_size = 70.0f;
+    float padding = 10.0f;
+    float start_x = (SCREEN_WIDTH - (pad_size * 3 + padding * 2)) / 2;
+    float start_y = (SCREEN_HEIGHT - (pad_size * 3 + padding * 2)) / 2;
+    
+    for (int i = 0; i < NUM_PADS; i++) {
+        int row = i / 3;
+        int col = i % 3;
+        float x = start_x + col * (pad_size + padding);
+        float y = start_y + row * (pad_size + padding);
+        init_pad(&pads[i], x, y, pad_size, pad_size, clrButtonIdle, clrButtonPressed, &sounds[i]);
+    }
 
     printf("Use the pads to play sounds\n");
+    printf("Mapped buttons: A, B, X, Y, L, R, Up, Down, Left\n");
+
+    // Array to hold the button keys 
+    u32 mapped_keys[NUM_PADS] = {
+        KEY_A, KEY_B, KEY_X,
+        KEY_Y, KEY_L, KEY_R,
+        KEY_DUP, KEY_DDOWN, KEY_DLEFT
+    };
 
 // Main loop
   while (aptMainLoop()) {
@@ -214,7 +206,7 @@ int main(int argc, char** argv) {
 
     if (kDown & KEY_START) break;
 
-    // update pad pressed state
+    // update pad pressed state for touch
     for (int i = 0; i < NUM_PADS; i++) {
         PadRect* pad = &pads[i];
         bool isTouched = (kHeld & KEY_TOUCH) &&
@@ -223,31 +215,22 @@ int main(int argc, char** argv) {
 
         if (isTouched && !pad->pressed) {
             pad->pressed = true;
-            if (i == 0) { // Kick Pad
-                play_sample(pad->sample, 0); // Play kick on Channel 0
-                printf("Playing kick pad on channel 0\n");
-            } else if (i == 1) { // Snare Pad
-                play_sample(pad->sample, 1); // Play snare on Channel 1
-                printf("Playing snare pad on channel 1\n");
-            } 
+            play_sample(pad->sample, i); // Play each pad on its own channel (0-8)
+            printf("Playing pad %d on channel %d via touch\n", i, i);
         }
          else if (!isTouched && pad->pressed) {
             pad->pressed = false;
         }
     }
+    
+    // update pad pressed state for buttons
+    for (int i = 0; i < NUM_PADS; i++) {
+        if (kDown & mapped_keys[i]) {
+            play_sample(&sounds[i], i);
+            printf("Playing pad %d on channel %d via button press\n", i, i);
+        }
+    }
 
-    if (kDown & KEY_A) {
-        play_sample(&kick1, 0); // Play kick with A on Channel 0
-        printf("Played kick with A button on channel 0\n");
-    }
-    if (kDown & KEY_B) {
-        play_sample(&snare1, 1); // Play snare with B on Channel 1
-        printf("Played snare with B button on channel 1\n");
-    }
-    /* if (kDown & KEY_Y) {
-        play_sample(&hh1, 1); 
-        printf("Played hh with Y button on channel 2\n");
-    } */
 // start rendering
     C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
     C2D_TargetClear(bottom, clrClear);
@@ -262,12 +245,11 @@ int main(int argc, char** argv) {
 
     C3D_FrameEnd(0);
 }
-    ndspChnWaveBufClear(0);
-    ndspChnWaveBufClear(1);
-    //ndspChnWaveBufClear(2);
-    linearFree(kick1.data);
-    linearFree(snare1.data);
-    //linearFree(hh1.data);
+    for (int i = 0; i < NUM_PADS; i++) {
+        ndspChnWaveBufClear(i);
+        linearFree(sounds[i].data);
+    }
+
     C2D_Fini();
     C3D_Fini();
     ndspExit();
