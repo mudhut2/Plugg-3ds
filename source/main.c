@@ -15,8 +15,14 @@ typedef struct {
     size_t size;
     int sampleRate;
     int channels;
-    ndspWaveBuf waveBuf;
+    ndspWaveBuf waveBuf[2];  // switch channel when choked
+    int which;               // index 0/1
 } AudioSample;
+
+static inline u32 bytes_to_nsamples(const AudioSample* s) {
+    // 16-bit PCM: 2 bytes per sample * channels
+    return (u32)(s->size / (s->channels * sizeof(int16_t)));
+}
 
 typedef struct {
     float x, y, w, h;
@@ -118,25 +124,27 @@ bool load_wav(const char* path, AudioSample* out) {
     return true;
 }
 
-void play_sample(AudioSample* sample, int channel) {
-    ndspWaveBuf* buf = &sample->waveBuf;
-   
-    ndspChnWaveBufClear(channel);  // choke current channel
+void play_sample(AudioSample* s, int channel) {
+    ndspChnReset(channel);
 
     ndspChnSetInterp(channel, NDSP_INTERP_LINEAR);
-    ndspChnSetRate(channel, sample->sampleRate);
-    ndspChnSetFormat(channel, NDSP_FORMAT_STEREO_PCM16);
+    ndspChnSetRate(channel, s->sampleRate);
+    ndspChnSetFormat(channel,
+        s->channels == 2 ? NDSP_FORMAT_STEREO_PCM16 : NDSP_FORMAT_MONO_PCM16);
 
     float mix[12] = {0};
-    mix[0] = mix[1] = 1.0f;
+    mix[0] = mix[1] = 1.0f;   // L/R
     ndspChnSetMix(channel, mix);
 
-    memset(buf, 0, sizeof(ndspWaveBuf));
-    buf->data_vaddr = sample->data;
-    buf->nsamples = sample->size / 4;
-    buf->looping = false;
+    s->which ^= 1;
+    ndspWaveBuf* buf = &s->waveBuf[s->which];
+    memset(buf, 0, sizeof(*buf));
 
-    DSP_FlushDataCache(sample->data, sample->size);
+    buf->data_vaddr = s->data;
+    buf->nsamples   = bytes_to_nsamples(s);
+    buf->looping    = false;
+
+    DSP_FlushDataCache(s->data, s->size);
     ndspChnWaveBufAdd(channel, buf);
 }
 
@@ -162,15 +170,15 @@ int main(int argc, char** argv) {
 
 // Load samples
     AudioSample sounds[NUM_PADS];
-    if (!load_wav("sdmc:/sounds/claps64.wav", &sounds[0])) { return 1; }
+    if (!load_wav("sdmc:/sounds/plug/spinz.wav", &sounds[0])) { return 1; }
     if (!load_wav("sdmc:/sounds/bass1.wav", &sounds[1])) { return 1; }
     if (!load_wav("sdmc:/sounds/oh1.wav", &sounds[2])) { return 1; }
-    if (!load_wav("sdmc:/sounds/kick2.wav", &sounds[3])) { return 1; }
+    if (!load_wav("sdmc:/sounds/hh1.wav", &sounds[3])) { return 1; }
     if (!load_wav("sdmc:/sounds/yoshsnare1.wav", &sounds[4])) { return 1; }
-    if (!load_wav("sdmc:/sounds/clap1.wav", &sounds[5])) { return 1; }
-    if (!load_wav("sdmc:/sounds/00.wav", &sounds[6])) { return 1; }
+   // if (!load_wav("sdmc:/sounds/plug/cow.wav", &sounds[5])) { return 1; }
+    if (!load_wav("sdmc:/sounds/claps64.wav", &sounds[6])) { return 1; }
     if (!load_wav("sdmc:/sounds/perc1.wav", &sounds[7])) { return 1; }
-    if (!load_wav("sdmc:/sounds/hatperc.wav", &sounds[8])) { return 1; }
+   // if (!load_wav("sdmc:/sounds/plug/hh1.wav", &sounds[8])) { return 1; }
 
 // draw pads in a 3x3 grid
     float pad_size = 70.0f;
