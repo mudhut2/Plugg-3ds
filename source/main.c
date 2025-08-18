@@ -4,10 +4,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <dirent.h>
 
-#define SCREEN_WIDTH  320
-#define SCREEN_HEIGHT 240
+#define BOT_SCREEN_WIDTH  320
+#define BOT_SCREEN_HEIGHT 240
 #define NUM_PADS 8   // 8 pads now
+
+#define TOP_SCREEN_WIDTH  400
+#define SCREEN_HEIGHT 240
+#define MAX_FILES     128
 
 typedef enum {
     MODE_PLAY,
@@ -16,6 +21,13 @@ typedef enum {
 
 GameMode mode = MODE_PLAY;
 int selectedPad = 0;
+
+static C2D_Font font;
+static C2D_TextBuf textBuf;
+
+int selectedFile = 0;
+char soundFiles[MAX_FILES][256];
+u32 soundFileCount = 0;
 
 typedef struct {
     u8* data;
@@ -150,6 +162,10 @@ void play_sample(AudioSample* s) {
     ndspChnWaveBufAdd(hwChannel, buf);
 }
 
+void loadSoundFiles() {
+
+}
+
 int main(int argc, char** argv) {
     // Init services
     gfxInitDefault();
@@ -160,6 +176,7 @@ int main(int argc, char** argv) {
     ndspInit();
 
     C3D_RenderTarget* bottom = C2D_CreateScreenTarget(GFX_BOTTOM, GFX_LEFT);
+    C3D_RenderTarget* top = C2D_CreateScreenTarget(GFX_TOP, GFX_LEFT);
 
     u32 clrButtonIdle = C2D_Color32(0x93, 0x93, 0x93, 0xFF);
     u32 clrButtonPressed = C2D_Color32(0x00, 0x95, 0xFF, 0xFF);
@@ -185,8 +202,8 @@ int main(int argc, char** argv) {
     // draw pads in 2x4 grid
     float pad_size = 70.0f;
     float padding = 10.0f;
-    float start_x = (SCREEN_WIDTH - (pad_size * 4 + padding * 3)) / 2;
-    float start_y = (SCREEN_HEIGHT - (pad_size * 2 + padding)) / 2;
+    float start_x = (BOT_SCREEN_WIDTH - (pad_size * 4 + padding * 3)) / 2;
+    float start_y = (BOT_SCREEN_HEIGHT - (pad_size * 2 + padding)) / 2;
     
     for (int i = 0; i < NUM_PADS; i++) {
         int row = i / 4;
@@ -213,9 +230,13 @@ int main(int argc, char** argv) {
         if (kDown & KEY_SELECT){
             mode = (mode==MODE_PLAY) ? MODE_MENU : MODE_PLAY;
             printf("Switched to %s mode\n", (mode==MODE_PLAY) ? "play" : "menu");
-        }
 
+        }
         if (mode == MODE_MENU) {
+            C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
+            C2D_TargetClear(top, clrClear);
+            C2D_SceneBegin(top);
+
             if (kDown & KEY_DLEFT)  selectedPad = (selectedPad - 1 + NUM_PADS) % NUM_PADS;
             if (kDown & KEY_DRIGHT) selectedPad = (selectedPad + 1) % NUM_PADS;
             if (kDown & KEY_A) {
@@ -234,22 +255,20 @@ int main(int argc, char** argv) {
                 bool isTouched = (kHeld & KEY_TOUCH) &&
                                  touch.px >= pad->x && touch.px <= pad->x + pad->w &&
                                  touch.py >= pad->y && touch.py <= pad->y + pad->h;
-
                 if (isTouched && !pad->pressed) {
                     pad->pressed = true;
                     play_sample(pad->sample);
                     printf("Playing pad %d via touch\n", i);
-                } else if (!isTouched && pad->pressed) {
+                } 
+                else if (!isTouched && pad->pressed) {
                     pad->pressed = false;
                 }
-
                 if (kDown & mapped_keys[i]) {
                     play_sample(&sounds[i]);
                     printf("Playing pad %d via button press\n", i);
                 }
             }
         }
-
         // start rendering
         C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
         C2D_TargetClear(bottom, clrClear);
@@ -267,7 +286,6 @@ int main(int argc, char** argv) {
 
             C2D_DrawRectSolid(pad->x, pad->y, 0.0f, pad->w, pad->h, color);
         }
-
         C3D_FrameEnd(0);
     }
 
