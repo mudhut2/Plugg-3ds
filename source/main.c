@@ -5,38 +5,29 @@
 #include <string.h>
 #include <math.h>
 #include <dirent.h>
+#include "3ds-filebrowser.h"
 
 #define BOT_SCREEN_WIDTH  320
 #define BOT_SCREEN_HEIGHT 240
-#define NUM_PADS 8   // 8 pads now
-
-#define TOP_SCREEN_WIDTH  400
-#define SCREEN_HEIGHT 240
-#define MAX_FILES     128
+#define NUM_PADS 8
 
 typedef enum {
     MODE_PLAY,
-    MODE_MENU
+    MODE_MENU_MAIN,
+    MODE_MENU_SOUND
 } GameMode;
 
 GameMode mode = MODE_PLAY;
 int selectedPad = 0;
-
-static C2D_Font font;
-static C2D_TextBuf textBuf;
-
-int selectedFile = 0;
-char soundFiles[MAX_FILES][256];
-u32 soundFileCount = 0;
 
 typedef struct {
     u8* data;
     size_t size;
     int sampleRate;
     int channels;
-    ndspWaveBuf waveBuf[2];  // switch buffer when retriggered
+    ndspWaveBuf waveBuf[2];
     int which;
-    int channel;             // hardware channel currently playing
+    int channel;
 } AudioSample;
 
 static inline u32 bytes_to_nsamples(const AudioSample* s) {
@@ -54,25 +45,20 @@ typedef struct {
 PadRect pads[NUM_PADS] = {};
 
 void init_pad(PadRect* pad, float x, float y, float w, float h, u32 idle, u32 pressed, AudioSample* sample) {
-    pad->x = x;
-    pad->y = y;
-    pad->w = w;
-    pad->h = h;
+    pad->x = x; pad->y = y;
+    pad->w = w; pad->h = h;
     pad->colorIdle = idle;
     pad->colorPressed = pressed;
     pad->pressed = false;
     pad->sample = sample;
 }
 
-// Load a simple uncompressed 16-bit WAV
+// Load uncompressed 16-bit WAV
 bool load_wav(const char* path, AudioSample* out) {
-    printf("Loading WAV from path: %s\n", path);
     FILE* f = fopen(path, "rb");
-    if (!f) { printf("Error: Failed to open file %s\n", path); return false; }
+    if (!f) { printf("Error opening %s\n", path); return false; }
 
-    char fourcc[5];
-    u32 chunk_size;
-
+    char fourcc[5]; u32 chunk_size;
     fread(fourcc, 1, 4, f); fourcc[4] = '\0';
     if (strcmp(fourcc, "RIFF") != 0) { fclose(f); return false; }
 
@@ -98,7 +84,7 @@ bool load_wav(const char* path, AudioSample* out) {
             fread(&bitsPerSample, sizeof(u16), 1, f);
 
             if (audioFormat != 1 || bitsPerSample != 16) {
-                printf("Error: Only uncompressed 16-bit PCM is supported.\n");
+                printf("Only PCM16 WAV supported.\n");
                 fclose(f); return false;
             }
             out->channels = numChannels;
@@ -126,16 +112,13 @@ bool load_wav(const char* path, AudioSample* out) {
     return true;
 }
 
-// Play sample on a free channel and choke the previous buffer if same pad
 void play_sample(AudioSample* s) {
-    // Find a free hardware channel
     int hwChannel = -1;
     for (int i = 0; i < 8; i++) {
         if (!ndspChnIsPlaying(i)) { hwChannel = i; break; }
     }
-    if (hwChannel < 0) hwChannel = 0; // fallback
+    if (hwChannel < 0) hwChannel = 0;
 
-    // Choke previous playback on this pad
     if (s->channel >= 0 && s->channel < 8) {
         ndspChnWaveBufClear(s->channel);
     }
@@ -147,7 +130,7 @@ void play_sample(AudioSample* s) {
     ndspChnSetFormat(hwChannel, s->channels == 2 ? NDSP_FORMAT_STEREO_PCM16 : NDSP_FORMAT_MONO_PCM16);
 
     float mix[12] = {0};
-    mix[0] = mix[1] = 1.0f; // L/R
+    mix[0] = mix[1] = 1.0f;
     ndspChnSetMix(hwChannel, mix);
 
     s->which ^= 1;
@@ -162,12 +145,17 @@ void play_sample(AudioSample* s) {
     ndspChnWaveBufAdd(hwChannel, buf);
 }
 
-void loadSoundFiles() {
-
+void assignSoundToPad(int padIndex, const char* filepath) {
+    AudioSample* s = pads[padIndex].sample;
+    if (s->data) linearFree(s->data);
+    if (!load_wav(filepath, s)) {
+        printf("Failed loading %s\n", filepath);
+    } else {
+        printf("Assigned %s to pad %d\n", filepath, padIndex);
+    }
 }
 
 int main(int argc, char** argv) {
-    // Init services
     gfxInitDefault();
     C3D_Init(C3D_DEFAULT_CMDBUF_SIZE);
     C2D_Init(C2D_DEFAULT_MAX_OBJECTS);
@@ -176,14 +164,14 @@ int main(int argc, char** argv) {
     ndspInit();
 
     C3D_RenderTarget* bottom = C2D_CreateScreenTarget(GFX_BOTTOM, GFX_LEFT);
-    C3D_RenderTarget* top = C2D_CreateScreenTarget(GFX_TOP, GFX_LEFT);
+    C3D_RenderTarget* top    = C2D_CreateScreenTarget(GFX_TOP, GFX_LEFT);
 
     u32 clrButtonIdle = C2D_Color32(0x93, 0x93, 0x93, 0xFF);
-    u32 clrButtonPressed = C2D_Color32(0x00, 0x95, 0xFF, 0xFF);
+    u32 clrButtonPressed = C2D_Color32(0xF0, 0x7D, 0x00, 0xFF);
     u32 clrClear = C2D_Color32(0x4B, 0x36, 0x9D, 0x68);
     touchPosition touch;
 
-    // Load 8 samples
+    // init default sounds so pad dont start empty
     AudioSample sounds[NUM_PADS];
     const char* paths[NUM_PADS] = {
         "sdmc:/sounds/plug/spinz.wav",
@@ -196,25 +184,18 @@ int main(int argc, char** argv) {
         "sdmc:/sounds/plug/clap1.wav"
     };
     for (int i = 0; i < NUM_PADS; i++) {
-        if (!load_wav(paths[i], &sounds[i])) return 1;
+        load_wav(paths[i], &sounds[i]);
     }
 
-    // draw pads in 2x4 grid
-    float pad_size = 70.0f;
-    float padding = 10.0f;
+    // pad grid
+    float pad_size = 70.0f, padding = 10.0f;
     float start_x = (BOT_SCREEN_WIDTH - (pad_size * 4 + padding * 3)) / 2;
     float start_y = (BOT_SCREEN_HEIGHT - (pad_size * 2 + padding)) / 2;
-    
     for (int i = 0; i < NUM_PADS; i++) {
-        int row = i / 4;
-        int col = i % 4;
-        float x = start_x + col * (pad_size + padding);
-        float y = start_y + row * (pad_size + padding);
-        init_pad(&pads[i], x, y, pad_size, pad_size, clrButtonIdle, clrButtonPressed, &sounds[i]);
+        int row = i / 4, col = i % 4;
+        init_pad(&pads[i], start_x + col*(pad_size+padding), start_y + row*(pad_size+padding),
+                 pad_size, pad_size, clrButtonIdle, clrButtonPressed, &sounds[i]);
     }
-
-    printf("Use the pads to play sounds\n");
-    printf("Mapped buttons: A, B, X, Y, L, R, Up, Down\n");
 
     u32 mapped_keys[NUM_PADS] = { KEY_A, KEY_B, KEY_X, KEY_Y, KEY_L, KEY_R, KEY_DUP, KEY_DDOWN };
 
@@ -226,78 +207,80 @@ int main(int argc, char** argv) {
 
         if (kDown & KEY_START) break;
 
-        // MODE_MENU
-        if (kDown & KEY_SELECT){
-            mode = (mode==MODE_PLAY) ? MODE_MENU : MODE_PLAY;
-            printf("Switched to %s mode\n", (mode==MODE_PLAY) ? "play" : "menu");
-
+        if (mode == MODE_PLAY && (kDown & KEY_SELECT)) {
+            mode = MODE_MENU_MAIN;
+            printf("\x1b[0;0HPad %d selected.\n Press A to change sound, B to return.\n", selectedPad);
         }
-        if (mode == MODE_MENU) {
-            C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
-            C2D_TargetClear(top, clrClear);
-            C2D_SceneBegin(top);
 
+        if (mode == MODE_MENU_MAIN) {
             if (kDown & KEY_DLEFT)  selectedPad = (selectedPad - 1 + NUM_PADS) % NUM_PADS;
             if (kDown & KEY_DRIGHT) selectedPad = (selectedPad + 1) % NUM_PADS;
             if (kDown & KEY_A) {
-                if (!load_wav("sdmc:/sounds/00.wav", pads[selectedPad].sample)) {
-                    printf("Failed to load new sound for pad %d\n", selectedPad);
-                } else {
-                    printf("Changed pad %d to new_sound.wav\n", selectedPad);
-                }
+                mode = MODE_MENU_SOUND;
             }
+            if (kDown & KEY_B) {
+                mode = MODE_PLAY;
+                consoleClear();
+            } 
         }
 
-        // MODE_PLAY
+        // File browser for sound selection
+        if (mode == MODE_MENU_SOUND) {
+            char* chosen = openFileBrowser("sdmc:/sounds");
+            if(chosen){
+                assignSoundToPad(selectedPad, chosen);
+                consoleClear();
+            }
+            mode = MODE_PLAY;
+        }
+
+        // Play pads
         if (mode == MODE_PLAY) {
             for (int i = 0; i < NUM_PADS; i++) {
                 PadRect* pad = &pads[i];
                 bool isTouched = (kHeld & KEY_TOUCH) &&
-                                 touch.px >= pad->x && touch.px <= pad->x + pad->w &&
-                                 touch.py >= pad->y && touch.py <= pad->y + pad->h;
+                                 touch.px >= pad->x && touch.px <= pad->x+pad->w &&
+                                 touch.py >= pad->y && touch.py <= pad->y+pad->h;
                 if (isTouched && !pad->pressed) {
                     pad->pressed = true;
                     play_sample(pad->sample);
-                    printf("Playing pad %d via touch\n", i);
-                } 
+                }
+                else if (kDown & mapped_keys[i]) {
+                    pad->pressed = true;
+                    play_sample(pad->sample);
+                }
+                else if(hidKeysHeld() & mapped_keys[i]) {
+                    pad->pressed = true;
+                }
+                else if(hidKeysUp() & mapped_keys[i]) {
+                    pad->pressed = false;
+                }
                 else if (!isTouched && pad->pressed) {
                     pad->pressed = false;
                 }
-                if (kDown & mapped_keys[i]) {
-                    play_sample(&sounds[i]);
-                    printf("Playing pad %d via button press\n", i);
-                }
-            }
+            } 
         }
-        // start rendering
+
+        // Render pads
         C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
         C2D_TargetClear(bottom, clrClear);
         C2D_SceneBegin(bottom);
 
-        // render pads
         for (int i = 0; i < NUM_PADS; i++) {
             PadRect* pad = &pads[i];
             u32 color = pad->pressed ? pad->colorPressed : pad->colorIdle;
-
-            // highlight pad in menu mode
-            if (mode == MODE_MENU && i == selectedPad) {
-                color = C2D_Color32(255, 255, 0, 255); // yellow
-            }
-
+            if (mode == MODE_MENU_MAIN && i == selectedPad)
+                color = C2D_Color32(255, 255, 0, 255);
             C2D_DrawRectSolid(pad->x, pad->y, 0.0f, pad->w, pad->h, color);
         }
         C3D_FrameEnd(0);
     }
 
-    // cleanup
+    // Cleanup
     for (int i = 0; i < NUM_PADS; i++) {
-        ndspChnWaveBufClear(sounds[i].channel);
-        linearFree(sounds[i].data);
+        if (sounds[i].data) linearFree(sounds[i].data);
     }
 
-    C2D_Fini();
-    C3D_Fini();
-    ndspExit();
-    gfxExit();
+    C2D_Fini(); C3D_Fini(); ndspExit(); gfxExit();
     return 0;
 }
