@@ -1,4 +1,4 @@
-main.o: D:/audio-code/tabla-3ds/source/main.c \
+main.o: D:/audio-code/plugg-3ds/source/main.c \
  C:/devkitPro/libctru/include/citro2d.h \
  C:/devkitPro/libctru/include/citro3d.h \
  C:/devkitPro/libctru/include/c3d/types.h \
@@ -109,7 +109,8 @@ main.o: D:/audio-code/tabla-3ds/source/main.c \
  C:/devkitPro/libctru/include/c2d/sprite.h \
  C:/devkitPro/libctru/include/c2d/text.h \
  C:/devkitPro/libctru/include/c2d/font.h \
- D:/audio-code/tabla-3ds/source/3ds-filebrowser.h
+ D:/audio-code/plugg-3ds/source/filebrowser.h \
+ D:/audio-code/plugg-3ds/source/main.h
 C:/devkitPro/libctru/include/citro2d.h:
 C:/devkitPro/libctru/include/citro3d.h:
 C:/devkitPro/libctru/include/c3d/types.h:
@@ -220,4 +221,5 @@ C:/devkitPro/libctru/include/c2d/spritesheet.h:
 C:/devkitPro/libctru/include/c2d/sprite.h:
 C:/devkitPro/libctru/include/c2d/text.h:
 C:/devkitPro/libctru/include/c2d/font.h:
-D:/audio-code/tabla-3ds/source/3ds-filebrowser.h:
+D:/audio-code/plugg-3ds/source/filebrowser.h:
+D:/audio-code/plugg-3ds/source/main.h:

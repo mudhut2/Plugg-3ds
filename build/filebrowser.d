@@ -1,8 +1,4 @@
-menu.o: D:/audio-code/tabla-3ds/source/menu.c \
- D:/audio-code/tabla-3ds/source/menu.h \
- C:/devkitPro/libctru/include/citro2d.h \
- C:/devkitPro/libctru/include/citro3d.h \
- C:/devkitPro/libctru/include/c3d/types.h \
+filebrowser.o: D:/audio-code/plugg-3ds/source/filebrowser.c \
  C:/devkitPro/libctru/include/3ds.h \
  C:/devkitPro/libctru/include/3ds/types.h \
  C:/devkitPro/libctru/include/3ds/result.h \
@@ -89,31 +85,8 @@ menu.o: D:/audio-code/tabla-3ds/source/menu.c \
  C:/devkitPro/libctru/include/3ds/font.h \
  C:/devkitPro/libctru/include/3ds/gdbhio_dev.h \
  C:/devkitPro/libctru/include/3ds/3dslink.h \
- C:/devkitPro/libctru/include/c3d/maths.h \
- C:/devkitPro/libctru/include/c3d/mtxstack.h \
- C:/devkitPro/libctru/include/c3d/uniforms.h \
- C:/devkitPro/libctru/include/c3d/attribs.h \
- C:/devkitPro/libctru/include/c3d/buffers.h \
- C:/devkitPro/libctru/include/c3d/base.h \
- C:/devkitPro/libctru/include/c3d/texenv.h \
- C:/devkitPro/libctru/include/c3d/effect.h \
- C:/devkitPro/libctru/include/c3d/texture.h \
- C:/devkitPro/libctru/include/c3d/proctex.h \
- C:/devkitPro/libctru/include/c3d/light.h \
- C:/devkitPro/libctru/include/c3d/lightlut.h \
- C:/devkitPro/libctru/include/c3d/fog.h \
- C:/devkitPro/libctru/include/c3d/framebuffer.h \
- C:/devkitPro/libctru/include/c3d/renderqueue.h \
- C:/devkitPro/libctru/include/tex3ds.h \
- C:/devkitPro/libctru/include/c2d/base.h \
- C:/devkitPro/libctru/include/c2d/spritesheet.h \
- C:/devkitPro/libctru/include/c2d/sprite.h \
- C:/devkitPro/libctru/include/c2d/text.h \
- C:/devkitPro/libctru/include/c2d/font.h
-D:/audio-code/tabla-3ds/source/menu.h:
-C:/devkitPro/libctru/include/citro2d.h:
-C:/devkitPro/libctru/include/citro3d.h:
-C:/devkitPro/libctru/include/c3d/types.h:
+ D:/audio-code/plugg-3ds/source/filebrowser.h \
+ D:/audio-code/plugg-3ds/source/main.h
 C:/devkitPro/libctru/include/3ds.h:
 C:/devkitPro/libctru/include/3ds/types.h:
 C:/devkitPro/libctru/include/3ds/result.h:
@@ -200,24 +173,5 @@ C:/devkitPro/libctru/include/3ds/romfs.h:
 C:/devkitPro/libctru/include/3ds/font.h:
 C:/devkitPro/libctru/include/3ds/gdbhio_dev.h:
 C:/devkitPro/libctru/include/3ds/3dslink.h:
-C:/devkitPro/libctru/include/c3d/maths.h:
-C:/devkitPro/libctru/include/c3d/mtxstack.h:
-C:/devkitPro/libctru/include/c3d/uniforms.h:
-C:/devkitPro/libctru/include/c3d/attribs.h:
-C:/devkitPro/libctru/include/c3d/buffers.h:
-C:/devkitPro/libctru/include/c3d/base.h:
-C:/devkitPro/libctru/include/c3d/texenv.h:
-C:/devkitPro/libctru/include/c3d/effect.h:
-C:/devkitPro/libctru/include/c3d/texture.h:
-C:/devkitPro/libctru/include/c3d/proctex.h:
-C:/devkitPro/libctru/include/c3d/light.h:
-C:/devkitPro/libctru/include/c3d/lightlut.h:
-C:/devkitPro/libctru/include/c3d/fog.h:
-C:/devkitPro/libctru/include/c3d/framebuffer.h:
-C:/devkitPro/libctru/include/c3d/renderqueue.h:
-C:/devkitPro/libctru/include/tex3ds.h:
-C:/devkitPro/libctru/include/c2d/base.h:
-C:/devkitPro/libctru/include/c2d/spritesheet.h:
-C:/devkitPro/libctru/include/c2d/sprite.h:
-C:/devkitPro/libctru/include/c2d/text.h:
-C:/devkitPro/libctru/include/c2d/font.h:
+D:/audio-code/plugg-3ds/source/filebrowser.h:
+D:/audio-code/plugg-3ds/source/main.h:

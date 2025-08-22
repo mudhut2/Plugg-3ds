@@ -5,30 +5,16 @@
 #include <string.h>
 #include <math.h>
 #include <dirent.h>
-#include "3ds-filebrowser.h"
+#include "filebrowser.h"
+#include "main.h"
 
 #define BOT_SCREEN_WIDTH  320
 #define BOT_SCREEN_HEIGHT 240
 #define NUM_PADS 8
 
-typedef enum {
-    MODE_PLAY,
-    MODE_MENU_MAIN,
-    MODE_MENU_SOUND
-} GameMode;
 
 GameMode mode = MODE_PLAY;
 int selectedPad = 0;
-
-typedef struct {
-    u8* data;
-    size_t size;
-    int sampleRate;
-    int channels;
-    ndspWaveBuf waveBuf[2];
-    int which;
-    int channel;
-} AudioSample;
 
 static inline u32 bytes_to_nsamples(const AudioSample* s) {
     return (u32)(s->size / (s->channels * sizeof(int16_t)));
@@ -113,26 +99,36 @@ bool load_wav(const char* path, AudioSample* out) {
 }
 
 void play_sample(AudioSample* s) {
-    int hwChannel = -1;
-    for (int i = 0; i < 8; i++) {
-        if (!ndspChnIsPlaying(i)) { hwChannel = i; break; }
-    }
-    if (hwChannel < 0) hwChannel = 0;
+    int hwChannel = s->channel;
 
-    if (s->channel >= 0 && s->channel < 8) {
-        ndspChnWaveBufClear(s->channel);
+    // If this pad was already playing, clear its buffer to stop it
+    if (hwChannel >= 0 && hwChannel < 8) {
+        ndspChnWaveBufClear(hwChannel);
+    } else {
+        // Find a free channel for new sound
+        hwChannel = -1;
+        for (int i = 0; i < 8; i++) {
+            if (!ndspChnIsPlaying(i)) {
+                hwChannel = i;
+                break;
+            }
+        }
+        if (hwChannel < 0) hwChannel = 0; // fallback
+        s->channel = hwChannel;
     }
-    s->channel = hwChannel;
 
+    // Reset channel and configure format
     ndspChnReset(hwChannel);
     ndspChnSetInterp(hwChannel, NDSP_INTERP_LINEAR);
     ndspChnSetRate(hwChannel, s->sampleRate);
     ndspChnSetFormat(hwChannel, s->channels == 2 ? NDSP_FORMAT_STEREO_PCM16 : NDSP_FORMAT_MONO_PCM16);
 
+    // Full left/right mix
     float mix[12] = {0};
     mix[0] = mix[1] = 1.0f;
     ndspChnSetMix(hwChannel, mix);
 
+    // Toggle wave buffer (double buffering)
     s->which ^= 1;
     ndspWaveBuf* buf = &s->waveBuf[s->which];
     memset(buf, 0, sizeof(*buf));
@@ -227,6 +223,7 @@ int main(int argc, char** argv) {
         // File browser for sound selection
         if (mode == MODE_MENU_SOUND) {
             char* chosen = openFileBrowser("sdmc:/sounds");
+            
             if(chosen){
                 assignSoundToPad(selectedPad, chosen);
                 consoleClear();

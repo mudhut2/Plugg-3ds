@@ -4,7 +4,9 @@
 #include <3ds.h>
 #include <dirent.h>
 #include <sys/stat.h>
-#include "3ds-filebrowser.h"
+#include "filebrowser.h"
+#include "main.h"
+
 
 #define MAX_FILES 512
 
@@ -72,6 +74,18 @@ char* openFileBrowser(const char* startPath) {
                 }
             }
         }
+        if (kDown & KEY_X) {
+            // preview the currently highlighted file
+            char fullpath[PATH_MAX];
+            snprintf(fullpath, sizeof(fullpath), "%s/%s", currentPath, entries[selected].name);
+            
+            AudioSample preview = {0};
+            if (load_wav(fullpath, &preview)) {
+                play_sample(&preview);
+                // free after preview so no leak
+                if (preview.data) linearFree(preview.data);
+            }
+        }
 
         if (kDown & KEY_DOWN) selected = (selected + 1) % entryCount;
         if (kDown & KEY_UP)   selected = (selected - 1 + entryCount) % entryCount;
@@ -97,7 +111,7 @@ char* openFileBrowser(const char* startPath) {
             if (i == selected) printf("-> %s\n", entries[i].name);
             else               printf("   %s\n", entries[i].name);
         }
-
+        printf("\nPress X to preview sounds");
         gfxFlushBuffers();
         gfxSwapBuffers();
         gspWaitForVBlank();
