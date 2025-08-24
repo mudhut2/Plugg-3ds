@@ -112,26 +112,8 @@ char* openFileBrowser(const char* startPath) {
             else               printf("   %s\n", entries[i].name);
         }
         printf("\nPress X to preview sounds");
-        gfxFlushBuffers();
-        gfxSwapBuffers();
         gspWaitForVBlank();
     }
 
     return NULL;
 }
-
-/* Uncomment for standalone test
-
-int main() {
-    gfxInitDefault();
-    consoleInit(GFX_TOP, NULL);
-
-    char* chosen = openFileBrowser("sdmc:/sounds");
-    if(chosen){
-        printf("User picked %s\n", chosen);
-    }
-
-    gfxExit();
-    return 0;
-}
-*/

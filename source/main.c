@@ -12,7 +12,6 @@
 #define BOT_SCREEN_HEIGHT 240
 #define NUM_PADS 8
 
-
 GameMode mode = MODE_PLAY;
 int selectedPad = 0;
 
@@ -160,7 +159,7 @@ int main(int argc, char** argv) {
     ndspInit();
 
     C3D_RenderTarget* bottom = C2D_CreateScreenTarget(GFX_BOTTOM, GFX_LEFT);
-    C3D_RenderTarget* top    = C2D_CreateScreenTarget(GFX_TOP, GFX_LEFT);
+
 
     u32 clrButtonIdle = C2D_Color32(0x93, 0x93, 0x93, 0xFF);
     u32 clrButtonPressed = C2D_Color32(0xF0, 0x7D, 0x00, 0xFF);
@@ -233,6 +232,8 @@ int main(int argc, char** argv) {
 
         // Play pads
         if (mode == MODE_PLAY) {
+            printf("\x1b[0;0HSELECT to change modes   "); // spaces to clear remnants
+        
             for (int i = 0; i < NUM_PADS; i++) {
                 PadRect* pad = &pads[i];
                 bool isTouched = (kHeld & KEY_TOUCH) &&
