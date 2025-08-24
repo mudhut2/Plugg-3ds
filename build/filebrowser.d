@@ -1,7 +1,4 @@
 filebrowser.o: D:/audio-code/plugg-3ds/source/filebrowser.c \
- C:/devkitPro/libctru/include/citro2d.h \
- C:/devkitPro/libctru/include/citro3d.h \
- C:/devkitPro/libctru/include/c3d/types.h \
  C:/devkitPro/libctru/include/3ds.h \
  C:/devkitPro/libctru/include/3ds/types.h \
  C:/devkitPro/libctru/include/3ds/result.h \
@@ -88,6 +85,10 @@ filebrowser.o: D:/audio-code/plugg-3ds/source/filebrowser.c \
  C:/devkitPro/libctru/include/3ds/font.h \
  C:/devkitPro/libctru/include/3ds/gdbhio_dev.h \
  C:/devkitPro/libctru/include/3ds/3dslink.h \
+ D:/audio-code/plugg-3ds/source/filebrowser.h \
+ C:/devkitPro/libctru/include/citro2d.h \
+ C:/devkitPro/libctru/include/citro3d.h \
+ C:/devkitPro/libctru/include/c3d/types.h \
  C:/devkitPro/libctru/include/c3d/maths.h \
  C:/devkitPro/libctru/include/c3d/mtxstack.h \
  C:/devkitPro/libctru/include/c3d/uniforms.h \
@@ -109,11 +110,7 @@ filebrowser.o: D:/audio-code/plugg-3ds/source/filebrowser.c \
  C:/devkitPro/libctru/include/c2d/sprite.h \
  C:/devkitPro/libctru/include/c2d/text.h \
  C:/devkitPro/libctru/include/c2d/font.h \
- D:/audio-code/plugg-3ds/source/filebrowser.h \
  D:/audio-code/plugg-3ds/source/main.h
-C:/devkitPro/libctru/include/citro2d.h:
-C:/devkitPro/libctru/include/citro3d.h:
-C:/devkitPro/libctru/include/c3d/types.h:
 C:/devkitPro/libctru/include/3ds.h:
 C:/devkitPro/libctru/include/3ds/types.h:
 C:/devkitPro/libctru/include/3ds/result.h:
@@ -200,6 +197,10 @@ C:/devkitPro/libctru/include/3ds/romfs.h:
 C:/devkitPro/libctru/include/3ds/font.h:
 C:/devkitPro/libctru/include/3ds/gdbhio_dev.h:
 C:/devkitPro/libctru/include/3ds/3dslink.h:
+D:/audio-code/plugg-3ds/source/filebrowser.h:
+C:/devkitPro/libctru/include/citro2d.h:
+C:/devkitPro/libctru/include/citro3d.h:
+C:/devkitPro/libctru/include/c3d/types.h:
 C:/devkitPro/libctru/include/c3d/maths.h:
 C:/devkitPro/libctru/include/c3d/mtxstack.h:
 C:/devkitPro/libctru/include/c3d/uniforms.h:
@@ -221,5 +222,4 @@ C:/devkitPro/libctru/include/c2d/spritesheet.h:
 C:/devkitPro/libctru/include/c2d/sprite.h:
 C:/devkitPro/libctru/include/c2d/text.h:
 C:/devkitPro/libctru/include/c2d/font.h:
-D:/audio-code/plugg-3ds/source/filebrowser.h:
 D:/audio-code/plugg-3ds/source/main.h:
