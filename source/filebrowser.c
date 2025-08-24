@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <citro2d.h>
 #include <3ds.h>
 #include <dirent.h>
 #include <sys/stat.h>
 #include "filebrowser.h"
 #include "main.h"
-
 
 #define MAX_FILES 512
 
@@ -37,10 +37,12 @@ void loadDirectory(const char* path) {
             struct stat st;
             if (stat(fullpath, &st) == 0 && S_ISDIR(st.st_mode)) {
                 entries[entryCount].isDir = 1;
-            } else {
+            } 
+            else {
                 entries[entryCount].isDir = 0;
             }
-        } else {
+        } 
+        else {
             entries[entryCount].isDir = 0;
         }
         entryCount++;
@@ -55,6 +57,11 @@ char* openFileBrowser(const char* startPath) {
 
     loadDirectory(currentPath);
     int selected = 0;
+
+    C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
+    //C2D_TargetClear(bottom, C2D_Color32(0, 0, 0, 255));  // black, or any background you like
+    C2D_SceneBegin(bottom);
+    C3D_FrameEnd(0);
 
     while (aptMainLoop()) {
         hidScanInput();

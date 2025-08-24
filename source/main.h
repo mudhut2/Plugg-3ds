@@ -1,6 +1,7 @@
 #pragma once
 #include <3ds.h>
 #include <stdbool.h>
+#include <citro2d.h>
 
 typedef struct {
     u8* data;
@@ -20,6 +21,8 @@ typedef enum {
 
 extern GameMode mode;
 extern int selectedPad;
+
+extern C3D_RenderTarget* bottom;
 
 bool load_wav(const char* path, AudioSample* out);
 void play_sample(AudioSample* s);

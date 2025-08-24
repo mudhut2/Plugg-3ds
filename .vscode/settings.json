@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "3ds-filebrowser.h": "c"
+        "3ds-filebrowser.h": "c",
+        "stdbool.h": "c"
     }
 }

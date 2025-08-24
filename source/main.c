@@ -15,6 +15,8 @@
 GameMode mode = MODE_PLAY;
 int selectedPad = 0;
 
+C3D_RenderTarget* bottom;
+
 static inline u32 bytes_to_nsamples(const AudioSample* s) {
     return (u32)(s->size / (s->channels * sizeof(int16_t)));
 }
@@ -158,8 +160,7 @@ int main(int argc, char** argv) {
     consoleInit(GFX_TOP, NULL);
     ndspInit();
 
-    C3D_RenderTarget* bottom = C2D_CreateScreenTarget(GFX_BOTTOM, GFX_LEFT);
-
+    bottom = C2D_CreateScreenTarget(GFX_BOTTOM, GFX_LEFT);
 
     u32 clrButtonIdle = C2D_Color32(0x93, 0x93, 0x93, 0xFF);
     u32 clrButtonPressed = C2D_Color32(0xF0, 0x7D, 0x00, 0xFF);
