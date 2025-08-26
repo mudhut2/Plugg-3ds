@@ -7,9 +7,13 @@ A plugg-inspired drum machine for the Nintendo 3DS. Designed as a lightweight, e
 - Classic plugg drum samples (808s, snares, hi-hats)  
 - Low-latency audio playback on 3DS hardware
 - Browse/load custom sounds onto pads   
-- Modular codebase for experimentation and extension  
+- Modular codebase for experimentation and extension
+![IMG_6105](https://github.com/user-attachments/assets/a4229ea3-1d04-46da-ad7d-b442caea41b6)
+![IMG_6108](https://github.com/user-attachments/assets/7845eb05-8e4b-4584-b723-5016d80be0b4)
+![IMG_6106](https://github.com/user-attachments/assets/29f844ab-6950-4168-9009-9479b461d381)
 
-## Installation
+## Installation![IMG_6109](https://github.com/user-attachments/assets/4c08195a-0cea-425c-b9c4-3635e212a242)
+
 1. Copy `Plugg3DS.3dsx` to your SD card under `/3ds/Plugg3DS/`  
 2. Boot via Homebrew Launcher
 3. Put custom sounds in "sdmc:/sounds"
@@ -22,6 +26,7 @@ A plugg-inspired drum machine for the Nintendo 3DS. Designed as a lightweight, e
 ## Technical Details
 - Language: C  
 - Libraries: libctru, citro2d / citro3d  
+
 - Architecture: main loop handles input, audio mixing, and rendering. File browser module for loading custom sounds  
 - Audio system: sample-based playback with fixed buffer sizes, optimized for low latency
 - Wav file parser. PCM16 format only due to 3ds contraints. Up to 32 khz.
