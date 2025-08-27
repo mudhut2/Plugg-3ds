@@ -1,6 +1,6 @@
 # Plugg3DS
 
-A plugg-inspired drum machine for the Nintendo 3DS. Designed as a lightweight, experimental platform for audio playback and future sequencing.
+A plugg-inspired drum machine for the Nintendo 3DS. Turns the 3DS into an instrument. Playing preset, or custom sounds that you uplaod (instructions below).
 
 ## Features
 - Real-time drum pad triggering via touchscreen and buttons  
