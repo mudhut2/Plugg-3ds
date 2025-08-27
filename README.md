@@ -8,8 +8,11 @@ A plugg-inspired drum machine for the Nintendo 3DS. Turns the 3DS into an instru
 - Low-latency audio playback on 3DS hardware
 - Browse/load custom sounds onto pads   
 - Modular codebase for experimentation and extension
+[Sound selection from file]
 ![IMG_6109](https://github.com/user-attachments/assets/4c08195a-0cea-425c-b9c4-3635e212a242)
+[Idle]
 ![IMG_6108](https://github.com/user-attachments/assets/7845eb05-8e4b-4584-b723-5016d80be0b4)
+[Playing pad]
 ![IMG_6106](https://github.com/user-attachments/assets/29f844ab-6950-4168-9009-9479b461d381)
 
 ## Installation
