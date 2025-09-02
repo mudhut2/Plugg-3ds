@@ -90,7 +90,7 @@ bool load_wav(const char* path, AudioSample* out) {
 void play_sample(AudioSample* s) {
     int hwChannel = -1;
 
-    // First, try to find a free channel
+    // try to find a free channel
     for (int i = 0; i < 8; i++) {
         int channel = (nextChannel + i) % 8;
         if (!ndspChnIsPlaying(channel)) {
@@ -99,7 +99,6 @@ void play_sample(AudioSample* s) {
             break;
         }
     }
-
     // If no free channel was found, use the next channel in the round-robin to 'steal' it.
     if (hwChannel == -1) {
         hwChannel = nextChannel;
@@ -130,7 +129,7 @@ void assignSoundToPad(int padIndex, const char* filepath) {
     AudioSample* s = pads[padIndex].sample;
     if (s->data) linearFree(s->data);
     if (!load_wav(filepath, s)) {
-        // Handle error case, perhaps by a special state or a message on next update
+        return;
     } else {
         soundAssigned = true;
     }
