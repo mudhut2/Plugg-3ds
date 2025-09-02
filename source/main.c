@@ -16,8 +16,12 @@ static int entryCount = 0;
 static char currentPath[PATH_MAX];
 static int fileBrowserSelected = 0;
 static int fileBrowserScroll = 0;
+static bool soundAssigned = false;
+static int nextChannel = 0;
 
 C3D_RenderTarget* bottom;
+
+static bool consoleNeedsUpdate = true;
 
 static inline u32 bytes_to_nsamples(const AudioSample* s) {
     return (u32)(s->size / (s->channels * sizeof(int16_t)));
@@ -34,7 +38,7 @@ void init_pad(PadRect* pad, float x, float y, float w, float h, u32 idle, u32 pr
 
 bool load_wav(const char* path, AudioSample* out) {
     FILE* f = fopen(path, "rb");
-    if (!f) { printf("Error opening %s\n", path); return false; }
+    if (!f) { return false; }
     char fourcc[5]; u32 chunk_size;
     fread(fourcc, 1, 4, f); fourcc[4] = '\0';
     if (strcmp(fourcc, "RIFF") != 0) { fclose(f); return false; }
@@ -58,7 +62,6 @@ bool load_wav(const char* path, AudioSample* out) {
             fread(&blockAlign, sizeof(u16), 1, f);
             fread(&bitsPerSample, sizeof(u16), 1, f);
             if (audioFormat != 1 || bitsPerSample != 16) {
-                printf("Only PCM16 WAV supported.\n");
                 fclose(f); return false;
             }
             out->channels = numChannels;
@@ -85,19 +88,22 @@ bool load_wav(const char* path, AudioSample* out) {
 }
 
 void play_sample(AudioSample* s) {
-    int hwChannel = s->channel;
-    if (hwChannel >= 0 && hwChannel < 8) {
-        ndspChnWaveBufClear(hwChannel);
-    } else {
-        hwChannel = -1;
-        for (int i = 0; i < 8; i++) {
-            if (!ndspChnIsPlaying(i)) {
-                hwChannel = i;
-                break;
-            }
+    int hwChannel = -1;
+
+    // First, try to find a free channel
+    for (int i = 0; i < 8; i++) {
+        int channel = (nextChannel + i) % 8;
+        if (!ndspChnIsPlaying(channel)) {
+            hwChannel = channel;
+            nextChannel = (channel + 1) % 8;
+            break;
         }
-        if (hwChannel < 0) hwChannel = 0;
-        s->channel = hwChannel;
+    }
+
+    // If no free channel was found, use the next channel in the round-robin to 'steal' it.
+    if (hwChannel == -1) {
+        hwChannel = nextChannel;
+        nextChannel = (nextChannel + 1) % 8;
     }
 
     ndspChnReset(hwChannel);
@@ -124,9 +130,9 @@ void assignSoundToPad(int padIndex, const char* filepath) {
     AudioSample* s = pads[padIndex].sample;
     if (s->data) linearFree(s->data);
     if (!load_wav(filepath, s)) {
-        printf("Failed loading %s\n", filepath);
+        // Handle error case, perhaps by a special state or a message on next update
     } else {
-        printf("Assigned %s to pad %d\n", filepath, padIndex);
+        soundAssigned = true;
     }
 }
 
@@ -155,6 +161,38 @@ void loadDirectory(const char* path) {
         entryCount++;
     }
     closedir(dir);
+}
+
+void updateConsole() {
+    consoleClear();
+    switch (mode) {
+        case MODE_PLAY:
+            if (soundAssigned) {
+                printf("\x1b[0;0HSound assigned to pad %d!\n", selectedPad);
+                soundAssigned = false;
+            } else {
+                printf("\x1b[0;0HSELECT to change modes   ");
+            }
+            break;
+        case MODE_MENU_MAIN:
+            printf("\x1b[0;0HPad %d selected.\nPress A to change sound, B to return.\n", selectedPad);
+            break;
+        case MODE_MENU_SOUND:
+            printf("\x1b[0;0HBrowsing: %s\n", currentPath);
+            int y_offset = 2;
+            for (int i = 0; i < 20 && (i + fileBrowserScroll) < entryCount; i++) {
+                int entryIndex = i + fileBrowserScroll;
+                printf("\x1b[%d;0H", y_offset + i);
+                if (entryIndex == fileBrowserSelected) {
+                    printf("-> %s      ", entries[entryIndex].name);
+                } else {
+                    printf("   %s      ", entries[entryIndex].name);
+                }
+            }
+            printf("\x1b[%d;0H\nPress X to preview sounds, B to go back", y_offset + 20);
+            break;
+    }
+    consoleNeedsUpdate = false;
 }
 
 int main(int argc, char** argv) {
@@ -187,8 +225,7 @@ int main(int argc, char** argv) {
         load_wav(paths[i], &sounds[i]);
     }
     
-    consoleClear();
-    printf("\x1b[0;0HSELECT to change modes   ");
+    updateConsole();
 
     float pad_size = 70.0f, padding = 10.0f;
     float start_x = (BOT_SCREEN_WIDTH - (pad_size * 4 + padding * 3)) / 2;
@@ -212,14 +249,11 @@ int main(int argc, char** argv) {
 
         if (kDown & KEY_SELECT) {
             mode = MODE_MENU_MAIN;
-            consoleClear();
-            printf("\x1b[0;0HPad %d selected.\nPress A to change sound, B to return.\n", selectedPad);
+            consoleNeedsUpdate = true;
         }
         
         switch (mode) {
             case MODE_PLAY: {
-                consoleClear();
-                printf("\x1b[0;0HSELECT to change modes   ");
                 for (int i = 0; i < NUM_PADS; i++) {
                     PadRect* pad = &pads[i];
                     bool isTouched = (kHeld & KEY_TOUCH) &&
@@ -244,11 +278,11 @@ int main(int argc, char** argv) {
             case MODE_MENU_MAIN: {
                 if (kDown & KEY_DLEFT) {
                     selectedPad = (selectedPad - 1 + NUM_PADS) % NUM_PADS;
-                    printf("\x1b[0;0HPad %d selected.\nPress A to change sound, B to return.\n", selectedPad);
+                    consoleNeedsUpdate = true;
                 }
                 if (kDown & KEY_DRIGHT) {
                     selectedPad = (selectedPad + 1) % NUM_PADS;
-                    printf("\x1b[0;0HPad %d selected.\nPress A to change sound, B to return.\n", selectedPad);
+                    consoleNeedsUpdate = true;
                 }
                 if (kDown & KEY_A) {
                     mode = MODE_MENU_SOUND;
@@ -256,10 +290,11 @@ int main(int argc, char** argv) {
                     loadDirectory(currentPath);
                     fileBrowserSelected = 0;
                     fileBrowserScroll = 0;
-                    consoleClear();
+                    consoleNeedsUpdate = true;
                 }
                 if (kDown & KEY_B) {
                     mode = MODE_PLAY;
+                    consoleNeedsUpdate = true;
                 }
                 break;
             }
@@ -271,14 +306,11 @@ int main(int argc, char** argv) {
                         loadDirectory(currentPath);
                         fileBrowserSelected = 0;
                         fileBrowserScroll = 0;
-                 
-                        consoleClear();
                     } 
                     else {
                         mode = MODE_MENU_MAIN;
-                        consoleClear();
-                        printf("\x1b[0;0HPad %d selected.\nPress A to change sound, B to return.\n", selectedPad);
                     }
+                    consoleNeedsUpdate = true;
                 }
                 if (kDown & KEY_X) {
                     char fullpath[PATH_MAX];
@@ -290,15 +322,21 @@ int main(int argc, char** argv) {
                     }
                 }
                 
-                if (kDown & KEY_DOWN) fileBrowserSelected = (fileBrowserSelected + 1) % entryCount;
-                if (kDown & KEY_UP) fileBrowserSelected = (fileBrowserSelected - 1 + entryCount) % entryCount;
-                
-                if (fileBrowserSelected >= fileBrowserScroll + 20) {
-                    fileBrowserScroll++;
+                if (kDown & KEY_DOWN) {
+                    fileBrowserSelected = (fileBrowserSelected + 1) % entryCount;
+                    if (fileBrowserSelected >= fileBrowserScroll + 20) {
+                        fileBrowserScroll++;
+                    }
+                    consoleNeedsUpdate = true;
                 }
-                if (fileBrowserSelected < fileBrowserScroll) {
-                    fileBrowserScroll--;
+                if (kDown & KEY_UP) {
+                    fileBrowserSelected = (fileBrowserSelected - 1 + entryCount) % entryCount;
+                    if (fileBrowserSelected < fileBrowserScroll) {
+                        fileBrowserScroll--;
+                    }
+                    consoleNeedsUpdate = true;
                 }
+
                 if (kDown & KEY_A) {
                     if (entries[fileBrowserSelected].isDir) {
                         char newPath[PATH_MAX];
@@ -307,29 +345,20 @@ int main(int argc, char** argv) {
                         loadDirectory(currentPath);
                         fileBrowserSelected = 0;
                         fileBrowserScroll = 0;
-                        consoleClear();
                     } else {
                         char chosenFile[PATH_MAX];
                         snprintf(chosenFile, sizeof(chosenFile), "%s/%s", currentPath, entries[fileBrowserSelected].name);
                         assignSoundToPad(selectedPad, chosenFile);
                         mode = MODE_PLAY;
                     }
+                    consoleNeedsUpdate = true;
                 }
-                
-                printf("\x1b[0;0HBrowsing: %s\n", currentPath);
-                int y_offset = 2;
-                for (int i = 0; i < 20 && (i + fileBrowserScroll) < entryCount; i++) {
-                    int entryIndex = i + fileBrowserScroll;
-                    printf("\x1b[%d;0H", y_offset + i);
-                    if (entryIndex == fileBrowserSelected) {
-                        printf("-> %s      ", entries[entryIndex].name);
-                    } else {
-                        printf("   %s      ", entries[entryIndex].name);
-                    }
-                }
-                printf("\x1b[%d;0H\nPress X to preview sounds, B to go back", y_offset + 20);
                 break;
             }
+        }
+        
+        if (consoleNeedsUpdate) {
+            updateConsole();
         }
 
         C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
