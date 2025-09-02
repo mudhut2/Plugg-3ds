@@ -172,6 +172,7 @@ int main(int argc, char** argv) {
     touchPosition touch;
 
     AudioSample sounds[NUM_PADS];
+
     const char* paths[NUM_PADS] = {
         "sdmc:/sounds/plug/spinz.wav",
         "sdmc:/sounds/00.wav",
@@ -217,6 +218,8 @@ int main(int argc, char** argv) {
         
         switch (mode) {
             case MODE_PLAY: {
+                consoleClear();
+                printf("\x1b[0;0HSELECT to change modes   ");
                 for (int i = 0; i < NUM_PADS; i++) {
                     PadRect* pad = &pads[i];
                     bool isTouched = (kHeld & KEY_TOUCH) &&
@@ -257,8 +260,6 @@ int main(int argc, char** argv) {
                 }
                 if (kDown & KEY_B) {
                     mode = MODE_PLAY;
-                    consoleClear();
-                    printf("\x1b[0;0HSELECT to change modes   ");
                 }
                 break;
             }
@@ -270,6 +271,7 @@ int main(int argc, char** argv) {
                         loadDirectory(currentPath);
                         fileBrowserSelected = 0;
                         fileBrowserScroll = 0;
+                 
                         consoleClear();
                     } 
                     else {
@@ -310,8 +312,6 @@ int main(int argc, char** argv) {
                         char chosenFile[PATH_MAX];
                         snprintf(chosenFile, sizeof(chosenFile), "%s/%s", currentPath, entries[fileBrowserSelected].name);
                         assignSoundToPad(selectedPad, chosenFile);
-                        consoleClear();
-                        printf("\x1b[0;0HSELECT to change modes   ");
                         mode = MODE_PLAY;
                     }
                 }
@@ -338,8 +338,9 @@ int main(int argc, char** argv) {
         for (int i = 0; i < NUM_PADS; i++) {
             PadRect* pad = &pads[i];
             u32 color = pad->pressed ? pad->colorPressed : pad->colorIdle;
-            if (mode == MODE_MENU_MAIN && i == selectedPad)
+            if ((mode == MODE_MENU_MAIN && i == selectedPad) || (mode == MODE_MENU_SOUND && i == selectedPad)){
                 color = C2D_Color32(255, 255, 0, 255);
+            }
             C2D_DrawRectSolid(pad->x, pad->y, 0.0f, pad->w, pad->h, color);
         }
         C3D_FrameEnd(0);
